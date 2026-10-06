@@ -9,6 +9,12 @@ pub struct SigFigNum {
     lsd: i32,
 }
 
+// enum LSD {
+//     TenToThe(i32),
+//     Perfect,
+// }
+// TODO: Add LSD instead of 9999 perfect
+
 impl Debug for SigFigNum {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
