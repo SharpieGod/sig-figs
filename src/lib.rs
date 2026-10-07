@@ -138,10 +138,7 @@ macro_rules! same_sf {
     ($($x:ident),+) => {
         $(
             pub fn $x(&self) -> Self {
-                Self {
-                    value: self.value.$x(),
-                    lsd: self.lsd,
-                }
+              self.value.$x().sf(self.get_sf())
             }
         )+
     };

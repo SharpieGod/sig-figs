@@ -20,7 +20,8 @@ impl Vector2 {
     }
 
     fn r_theta(&self) -> PolarCoordinates {
-        let r = (self.x.pow(2.0.perfect()) + self.y.pow(2.0.perfect())).sqrt();
+        let r = (self.x * self.x + self.y * self.y).sqrt();
+
         let theta = (self.y / self.x).atan() * (180. / PI).perfect();
 
         PolarCoordinates { r, theta }
@@ -45,6 +46,7 @@ fn main() {
         (1.00, 4.10, 1.78),
         (0.83, 4.21, 1.79),
         (0.91, 2.38, 1.75),
+        (1.83, 3.91, 1.71),
     ]
     .iter()
     .enumerate()
