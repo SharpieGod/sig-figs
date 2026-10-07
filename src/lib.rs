@@ -1,5 +1,5 @@
 use std::{
-    fmt::Debug,
+    fmt::{Debug, Display},
     ops::{Add, Div, Mul, Neg, Sub},
 };
 
@@ -7,6 +7,25 @@ use std::{
 pub struct SigFigNum {
     value: f64,
     lsd: i32,
+}
+
+impl Display for SigFigNum {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let rounded = self.rounded();
+
+        if self.lsd > 0 {
+            let sf = self.get_sf();
+            let exponent = self.lsd + sf as i32 - 1;
+            let mantissa = rounded / 10f64.powi(exponent);
+            let decimals = (sf as i32 - 1).max(0) as usize;
+            write!(f, "{:.*}e{}", decimals, mantissa, exponent)
+        } else if self.lsd == 0 && rounded % 10.0 == 0.0 {
+            write!(f, "{:.0}.", rounded)
+        } else {
+            let decimals = (-self.lsd).clamp(0, 17) as usize;
+            write!(f, "{:.*}", decimals, rounded)
+        }
+    }
 }
 
 // enum LSD {
@@ -38,8 +57,11 @@ impl SigFigNum {
     }
 
     pub fn get_sf(&self) -> u32 {
-        // lsd = self.log10().trunc() as i32 - sig_figs as i32 + 1;
-        (self.value.abs().log10().floor() as i32 + 1 - self.lsd as i32) as u32
+        let rounded = self.rounded().abs();
+        if rounded == 0.0 {
+            return 1;
+        }
+        (rounded.log10().floor() as i32 + 1 - self.lsd) as u32
     }
 }
 
@@ -113,7 +135,7 @@ impl Neg for SigFigNum {
 }
 
 macro_rules! same_sf {
-    ($($x:ident),*) => {
+    ($($x:ident),+) => {
         $(
             pub fn $x(&self) -> Self {
                 Self {
@@ -121,24 +143,38 @@ macro_rules! same_sf {
                     lsd: self.lsd,
                 }
             }
-        )*
+        )+
     };
 }
+
+macro_rules! impl_integers {
+    ($($x:ty),+) => {
+        $(
+            impl SigFigable for $x {
+                fn sf(&self, sf: u32) -> SigFigNum {
+                    (*self as f64).sf(sf)
+                }
+
+                fn lsd(&self, lsd: i32) -> SigFigNum {
+                    (*self as f64).lsd(lsd)
+                }
+
+                fn perfect(&self) -> SigFigNum {
+                    (*self as f64).perfect()
+                }
+            }
+        )+
+    };
+}
+
+impl_integers!(i8, i16, i32, i64, u8, u16, u32, u64);
 
 impl SigFigNum {
     same_sf!(sqrt, sin, cos, acos, asin, tan, atan);
 
-    pub fn powf(&self, pow: f64) -> Self {
-        Self {
-            value: self.value.powf(pow),
-            lsd: self.lsd,
-        }
-    }
-
-    pub fn powi(&self, pow: i32) -> Self {
-        Self {
-            value: self.value.powi(pow),
-            lsd: self.lsd,
-        }
+    pub fn pow(&self, pow: SigFigNum) -> Self {
+        self.value
+            .powf(pow.value)
+            .sf(self.get_sf().min(pow.get_sf()))
     }
 }
