@@ -68,7 +68,7 @@ impl SigFigNum {
 pub trait SigFigable {
     fn sf(&self, sig_figs: u32) -> SigFigNum;
     fn lsd(&self, lsd: i32) -> SigFigNum;
-    fn perfect(&self) -> SigFigNum;
+    fn pf(&self) -> SigFigNum;
 }
 
 impl SigFigable for f64 {
@@ -82,7 +82,7 @@ impl SigFigable for f64 {
         SigFigNum { value: *self, lsd }
     }
 
-    fn perfect(&self) -> SigFigNum {
+    fn pf(&self) -> SigFigNum {
         SigFigNum {
             value: *self,
             lsd: -9999999,
@@ -156,8 +156,8 @@ macro_rules! impl_integers {
                     (*self as f64).lsd(lsd)
                 }
 
-                fn perfect(&self) -> SigFigNum {
-                    (*self as f64).perfect()
+                fn pf(&self) -> SigFigNum {
+                    (*self as f64).pf()
                 }
             }
         )+
