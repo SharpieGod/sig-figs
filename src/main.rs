@@ -2,7 +2,7 @@ use std::f64::consts::PI;
 
 use sig_figs::{self, SigFigNum, SigFigable};
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 struct Vector2 {
     x: SigFigNum,
     y: SigFigNum,
@@ -29,62 +29,39 @@ impl Vector2 {
 }
 
 fn main() {
-    println!("{}", 2.13.sf(1) - 1.86.sf(3));
-    let data = vec![
-        // // Graysen
-        // (1.11, 6.07, 1.79),
-        // (1.05, 3.44, 1.75),
-        // (0.93, 3.95, 1.75),
-        // // Darko
-        (1.20, 5.18, 1.84),
-        (1.09, 4.76, 1.86),
-        (1.20, 6.71, 1.84),
-        // // Steven
-        // (0.63, 3.51, 1.84),
-        // (0.66, 3.53, 1.86),
-        // (0.63, 3.53, 1.84),
-        // // Daichi
-        // (1.00, 4.10, 1.78),
-        // (0.83, 4.21, 1.79),
-        // (0.91, 2.38, 1.75),
-        // (1.62, 3.60, 1.71),
-        // (0.90, 2.55, 1.71),
-        // (0.90, 2.55, 1.71),
-    ]
-    .iter()
-    .enumerate()
-    .map(|(i, &(t, dx, dy))| (i, t.lsd(-1), dx.lsd(-2), -dy.lsd(-2)))
-    .collect::<Vec<_>>();
+    let m = 670.sf(2);
+    let theta = 35.sf(2) * (PI / 180.).pf();
+    let mew = 0.22.sf(2);
+    let fa = 11550.sf(4);
+    let base = 85.sf(2);
 
-    for (i, t, dx, dy) in data {
-        let v0 = calc_initial_velocity(t, dx, dy);
+    let fg = m * 9.80.sf(3);
+    let fgx = -fg * (theta).sin();
+    let fgy = fg * (theta).cos();
 
-        // max-h
+    let a = (fgx + (-fgy * mew) + fa) / m;
 
-        let vh = v0.r_theta().r;
+    dbg!(a);
 
-        let d = (vh * vh) / (-9.80.sf(3) * -2.pf());
+    // cos(theta) = base/d
+    let vf = (2.pf() * a * base / theta.cos()).sqrt();
 
-        println!(
-            "Trial {:>2}:\nv0= [{},{}]\n{} m/s {}°\nmax-h: {}\n",
-            i + 1,
-            v0.x,
-            v0.y,
-            v0.r_theta().r,
-            v0.r_theta().theta,
-            d
-        );
-    }
-}
+    dbg!(vf);
+    let v0 = vf;
 
-fn calc_initial_velocity(t: SigFigNum, dx: SigFigNum, dy: SigFigNum) -> Vector2 {
-    let gravity = -9.80.sf(3);
+    let v0x = v0 * theta.cos();
+    let v0y = v0 * theta.sin();
 
-    // d = v0 * t + (a * t * t) / 2
-    // v0 = (d - (a * t * t) / 2)/t
+    // tan(theta) = drop/base
+    let drop = -base * theta.tan();
 
-    let v0y = (dy - (gravity * t * t) / 2.pf()) / t;
-    let v0x = dx / t;
+    let g = -9.80.sf(3);
 
-    Vector2::new(v0x, v0y)
+    let vfy = -(v0y * v0y + 2.pf() * g * drop).sqrt();
+    let vfx = v0x;
+
+    let vf = Vector2::new(vfx, vfy);
+
+    dbg!(vf);
+    println!("{:?} {:?}", vf.r_theta().r, vf.r_theta().theta);
 }
