@@ -5,8 +5,8 @@ use std::{
 
 #[derive(Clone, Copy)]
 pub struct SigFigNum {
-    value: f64,
-    lsd: i32,
+    pub value: f64,
+    pub lsd: i32,
 }
 
 impl Display for SigFigNum {
@@ -47,6 +47,10 @@ impl Debug for SigFigNum {
 
 impl SigFigNum {
     pub fn rounded(&self) -> f64 {
+        // pf() uses a huge negative lsd, so the scale overflows to inf
+        if !10f64.powi(self.lsd.abs()).is_finite() {
+            return self.value;
+        }
         if self.lsd < 0 {
             let scale = 10f64.powi(-self.lsd);
             (self.value * scale).round_ties_even() / scale
@@ -73,9 +77,10 @@ pub trait SigFigable {
 
 impl SigFigable for f64 {
     fn sf(&self, sig_figs: u32) -> SigFigNum {
-        let lsd = self.abs().log10().floor() as i32 - sig_figs as i32 + 1;
-
-        SigFigNum { value: *self, lsd }
+        let mag = if *self == 0.0 { 0 } else { self.abs().log10().floor() as i32 };
+        let n = self.lsd(mag - sig_figs as i32 + 1);
+        // rounding can carry into a new digit (9.96 -> 10.0), shift lsd up one
+        if n.get_sf() > sig_figs { self.lsd(n.lsd + 1) } else { n }
     }
 
     fn lsd(&self, lsd: i32) -> SigFigNum {
@@ -173,5 +178,22 @@ impl SigFigNum {
         self.value
             .powf(pow.value)
             .sf(self.get_sf().min(pow.get_sf()))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn decimals() {
+        assert_eq!(0.00123.sf(2).to_string(), "0.0012");
+        assert_eq!(0.1.sf(3).to_string(), "0.100");
+        assert_eq!(9.96.sf(2).to_string(), "10.");
+        assert_eq!(0.0996.sf(2).to_string(), "0.10");
+        assert_eq!(0.995.sf(2).to_string(), "1.0");
+        assert_eq!(0.0.sf(2).to_string(), "0.0");
+        assert_eq!(0.5.pf().to_string(), "0.50000000000000000");
+        assert_eq!((1.5.sf(2) + 0.25.sf(2)).to_string(), "1.8");
     }
 }
